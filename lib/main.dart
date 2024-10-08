@@ -9,8 +9,26 @@ class TaskManagerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Task Manager',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+      theme: ThemeData.dark().copyWith(
+        primaryColor: Colors.blueGrey[900],
+        scaffoldBackgroundColor: Colors.grey[900],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.blueGrey[900],
+          elevation: 0,
+        ),
+        colorScheme: ColorScheme.dark(
+          primary: Colors.blueGrey[700]!,
+          secondary: Colors.tealAccent,
+          surface: Colors.blueGrey[800]!,
+          background: Colors.grey[900]!,
+        ),
+        cardColor: Colors.blueGrey[800],
+        dividerColor: Colors.blueGrey[700],
+        textTheme: TextTheme(
+          titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.white60),
+        ),
       ),
       home: TaskListScreen(),
     );
@@ -67,72 +85,124 @@ class _TaskListScreenState extends State<TaskListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task Manager'),
+        title: Text('Task Manager', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _taskController,
-                    decoration: InputDecoration(hintText: 'Enter task name'),
+      body: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _taskController,
+                          style: TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Enter task name',
+                            hintStyle: TextStyle(color: Colors.white60),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      DropdownButton<String>(
+                        value: _selectedPriority,
+                        dropdownColor: Theme.of(context).cardColor,
+                        items: ['Low', 'Medium', 'High']
+                            .map((priority) => DropdownMenuItem(
+                                  child: Text(priority, style: TextStyle(color: Colors.white)),
+                                  value: priority,
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPriority = value!;
+                          });
+                        },
+                        underline: Container(),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        child: Icon(Icons.add),
+                        onPressed: _addTask,
+                        style: ElevatedButton.styleFrom(
+                          shape: CircleBorder(),
+                          padding: EdgeInsets.all(12),
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                DropdownButton<String>(
-                  value: _selectedPriority,
-                  items: ['Low', 'Medium', 'High']
-                      .map((priority) => DropdownMenuItem(
-                            child: Text(priority),
-                            value: priority,
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedPriority = value!;
-                    });
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      elevation: 2,
+                      margin: EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: Checkbox(
+                          value: _tasks[index].isCompleted,
+                          onChanged: (value) {
+                            _toggleTaskCompletion(index);
+                          },
+                          activeColor: Theme.of(context).colorScheme.secondary,
+                        ),
+                        title: Text(
+                          _tasks[index].name,
+                          style: TextStyle(
+                            decoration: _tasks[index].isCompleted
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                            color: _tasks[index].isCompleted ? Colors.white38 : Colors.white,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Priority: ${_tasks[index].priority}',
+                          style: TextStyle(
+                            color: _getPriorityColor(_tasks[index].priority),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.redAccent),
+                          onPressed: () {
+                            _deleteTask(index);
+                          },
+                        ),
+                      ),
+                    );
                   },
                 ),
-                IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: _addTask,
-                )
-              ],
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: Checkbox(
-                      value: _tasks[index].isCompleted,
-                      onChanged: (value) {
-                        _toggleTaskCompletion(index);
-                      },
-                    ),
-                    title: Text(
-                      _tasks[index].name,
-                      style: TextStyle(
-                          decoration: _tasks[index].isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none),
-                    ),
-                    subtitle: Text('Priority: ${_tasks[index].priority}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        _deleteTask(index);
-                      },
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'High':
+        return Colors.redAccent;
+      case 'Medium':
+        return Colors.amberAccent;
+      case 'Low':
+        return Colors.greenAccent;
+      default:
+        return Colors.white;
+    }
   }
 }
